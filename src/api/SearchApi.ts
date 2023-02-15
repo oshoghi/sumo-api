@@ -1,6 +1,8 @@
 import { SumoApiBase, sleep, SumoApiError} from "./BaseApi";
 import { SearchStatusResponse, SearchMessagesResponse, SearchStartResponse, SearchStates } from "../types/Search";
 
+export const POLL_SIZE=1000;
+
 export interface SumoSearchApiStart {
     query: string;
     from: string;
@@ -53,7 +55,7 @@ export class SearchApi extends SumoApiBase {
         return this.jsonOrError<SearchMessagesResponse>(`/api/v1/search/jobs/${id}/messages?offset=${offset}&limit=${limit}`);
     }
 
-    getAll = async (params:SumoSearchApiStart) => {
+    runQuery = async (params:SumoSearchApiStart) => {
         const search = await this.start(params);
 
         if ("error" in search) {
@@ -67,11 +69,9 @@ export class SearchApi extends SumoApiBase {
         }
 
         console.log(`found ${status.messageCount} messages`);
-
        
         let fields:any;
         const messages = [];
-        const POLL_SIZE=1000;
 
         for (let offset = 0; offset < status.messageCount; offset += POLL_SIZE) {
             const m = await this.getMessages(search.id, { offset, limit: POLL_SIZE });

@@ -13,30 +13,15 @@ const baseURL = "";
 console.log(await (async () => {
     const api = new SumoApi({ accessId, accessKey, baseURL });
 
-    const dashboard = await api.dashboard.get("<dashid>");
+    const dashboard = await api.dashboard.getResultsAsJson("<dashboard-id>", {
+        variableOverrides: {
+        }
+    });
 
     if ("error" in dashboard) {
-        return "error getting dashboard";
+        return "error fetching dashboard data: " + dashboard.error;
     }
 
-    for (let panel of dashboard.panels) {
-        if (panel.queries) {
-            for (let query of panel?.queries) {
-                const search = await api.search.getAll({
-                    "query": query.queryString,
-                    "from": "2023-01-01T12:00:00",
-                    "to": "2023-01-02T12:15:00",
-                    "timeZone": "PST",
-                    "byReceiptTime": true
-                });
-
-                if ("error" in search) {
-                    return "error starting search: " + search.error;
-                }
-
-                process.exit(0);
-            }
-        }
-    }
+    console.log(JSON.stringify(dashboard, null, "  "));
 })());
 ```

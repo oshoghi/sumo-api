@@ -1,9 +1,15 @@
 import { TimeRange } from "./TimeRange";
 
+export const QueryTypes = {
+    METRICS: "Metrics",
+    LOGS: "Logs",
+    SPANS: "Spans",
+} as const;
+
 export interface DashboardQuery {
     transient: boolean;
     queryString: string;
-    queryType: "Logs" | "Metrics" | "Custom";
+    queryType: typeof QueryTypes[keyof typeof QueryTypes];
     queryKey: string;
     parseMode: "Auto";
     timeSource: "Message";

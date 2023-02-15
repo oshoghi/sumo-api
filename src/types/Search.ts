@@ -1,7 +1,7 @@
 export const SearchStates = {
    GATHERING: "GATHERING RESULTS",
    DONE: "DONE GATHERING RESULTS",
-};
+} as const;
 
 export interface Field {
     name: string;
@@ -41,7 +41,7 @@ export interface SearchStartResponse {
 }
 
 export interface SearchStatusResponse {
-    state: typeof SearchStates.GATHERING | typeof SearchStates.DONE;
+    state: typeof SearchStates[keyof typeof SearchStates];
     histogramBuckets: HistogramBucket[];
     messageCount: number;
     recordCount: number;

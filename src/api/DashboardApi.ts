@@ -1,9 +1,10 @@
 import { SumoApiBase, SumoApiError } from "./BaseApi";
-import { Dashboard } from "../types/Dashboard";
+import { Dashboard, QueryTypes } from "../types/Dashboard";
 import { SearchApi } from "./SearchApi";
 import format from "re-format";
 import { TimeRangeGenerator } from "./TimeRangeGenerator";
 import { SearchMessagesResponse } from "../types/Search";
+import { MetricsApi } from "./MetricsApi";
 
 interface SumoQueryTime {
     from: string;
@@ -33,7 +34,8 @@ export class DashboardApi extends SumoApiBase {
             return dashboard as SumoApiError;
         }
 
-        const searchObj = new SearchApi(this.initOptions)
+        const searchObj = new SearchApi(this.initOptions);
+        const metricsObj = new MetricsApi(this.initOptions);
         const tr = new TimeRangeGenerator();
         const dashboardTimeRange = tr.getTimeRange(dashboard.timeRange);
         const results = {};
@@ -43,7 +45,7 @@ export class DashboardApi extends SumoApiBase {
                 results[panel.id] = {};
 
                 for (let query of panel?.queries) {
-                    const q = format.doubleCurly(query.queryString, variableOverrides).replace(/{{[^}]*}}/g, "*");
+                    const q = format.doubleCurly(query.queryString, variableOverrides).replace(/{{[^}]*}}/g, "*") as string;
                     const panelTimeRange = panel.timeRange && tr.getTimeRange(panel.timeRange);
                     const params = {
                         "query": q,
@@ -53,14 +55,37 @@ export class DashboardApi extends SumoApiBase {
                     };
 
                     console.log(params);
+                    console.log(query.queryType);
 
-                    const search = await searchObj.getAll(params);
+                    switch (query.queryType) {
+                        case QueryTypes.LOGS:
+                            const search = await searchObj.runQuery(params);
 
-                    if ("error" in search) {
-                        return search;
+                            if ("error" in search) {
+                                return search;
+                            }
+
+                            results[panel.id][query.queryKey] = search;
+
+                            break;
+                        case QueryTypes.METRICS:
+                            const metricsSearch = await metricsObj.runQuery({
+                                timeRange: panel.timeRange || dashboard.timeRange,
+                                queries: [{
+                                    query: q,
+                                    rowId: query.queryKey,
+                                }]
+                            });
+
+                            if ("error" in metricsSearch) {
+                                return metricsSearch;
+                            }
+
+                            results[panel.id][query.queryKey] = metricsSearch;
+
+                            break;
                     }
 
-                    results[panel.id][query.queryKey] = search;
                 }
             }
         }
